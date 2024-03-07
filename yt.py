@@ -4,7 +4,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from pytube import YouTube
 
 # Telegram Bot token and YouTube API credentials
-TELEGRAM_TOKEN = 'your_telegram_token'
+TELEGRAM_TOKEN = '7152551098:AAE3yVc80slmtsW4m7-CxxM5VZdOl1VRUbg'
 YOUTUBE_API_KEY = 'AIzaSyAFNSws_6PxBPr1vbK1QKHwFW_bVXHfZ9o'
 
 # Initialize Telegram bot

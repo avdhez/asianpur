@@ -1,6 +1,6 @@
 import os
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from pytube import YouTube
 from tqdm import tqdm  # Import the tqdm library for the progress bar
 
@@ -45,7 +45,7 @@ def main() -> None:
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.document, handle_file))
+    dispatcher.add_handler(MessageHandler(filters.document, handle_file))
 
     updater.start_polling()
 

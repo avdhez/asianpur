@@ -1,3 +1,4 @@
 python-telegram-bot==13.7
 pytube==11.0.1
 tqdm==4.62.3
+urllib3==1.26.8

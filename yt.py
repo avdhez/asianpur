@@ -1,59 +1,61 @@
 import os
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
-from pytube import YouTube
-from tqdm import tqdm  # Import the tqdm library for the progress bar
+import re
+import telegram
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import youtube_dl
 
-# Telegram Bot token and YouTube API credentials
-TELEGRAM_TOKEN = os.environ.get('7152551098:AAE3yVc80slmtsW4m7-CxxM5VZdOl1VRUbg')  # Use environment variable
-YOUTUBE_API_KEY = os.environ.get('AIzaSyAFNSws_6PxBPr1vbK1QKHwFW_bVXHfZ9o')  # Use environment variable
+# Telegram bot token
+TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
 
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Hello! Send me a file, and I'll upload it to YouTube.")
+# Initialize the bot
+bot = telegram.Bot(token=TOKEN)
+updater = Updater(token=TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-def handle_file(update: Update, context: CallbackContext) -> None:
-    try:
-        file_id = update.message.document.file_id
-        file = context.bot.get_file(file_id)
+# Define the start command handler
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Hello! Send me a YouTube link followed by a rename command to download the video with a custom name.\n\nExample:\nhttps://www.youtube.com/watch?v=VIDEO_ID /rename CustomName")
 
-        # Download the file to Heroku server's download folder with tqdm progress bar
-        file_path = f'/app/{file_id}.mp4'  # Adjust the path as per Heroku environment
-        with tqdm(total=file.file_size, unit='B', unit_scale=True, desc='Downloading') as pbar:
-            file.download(file_path, callback=lambda chunk, _: pbar.update(len(chunk)))
+# Define the download handler
+def download(update, context):
+    message_text = update.message.text
+    
+    # Extracting URL and rename command from the message text
+    match = re.match(r'(https?://[^\s]+) /rename (.+)', message_text)
+    if not match:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide a YouTube link followed by a /rename command with a custom name.")
+        return
+    
+    url = match.group(1)
+    custom_name = match.group(2)
+    
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': '%(title)s.%(ext)s',
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(url, download=False)
+        video_title = info_dict.get('title', None)
+        video_url = info_dict.get('url', None)
+        filename = f"{video_title}.mp4"
+        ydl.download([url])
+    
+    # Custom renaming
+    filename = f"{custom_name}.mp4"
+    os.rename(f"{video_title}.mp4", filename)
+    
+    context.bot.send_message(chat_id=update.effective_chat.id, text=f"Downloading {video_title}...")
 
-        print(f"File downloaded: {file_path}")
+    # Upload the downloaded video file
+    context.bot.send_video(chat_id=update.effective_chat.id, video=open(filename, 'rb'), caption=f"Here is your video: {custom_name}")
 
-        # Check if YouTube API key is provided
-        if not YOUTUBE_API_KEY:
-            raise ValueError("YouTube API key is missing or incorrect")
+# Handlers
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
 
-        # Upload the file to YouTube
-        youtube = YouTube(YOUTUBE_API_KEY)
-        video = youtube.upload(file_path, title='Uploaded from Telegram')
-        print(f"File uploaded to YouTube: {video.watch_url}")
+download_handler = MessageHandler(Filters.text & ~Filters.command, download)
+dispatcher.add_handler(download_handler)
 
-        # Send the YouTube link to the user
-        update.message.reply_text(f"File uploaded to YouTube: {video.watch_url}")
-
-    except Exception as e:
-        # Handle errors gracefully
-        update.message.reply_text(f"An error occurred: {str(e)}")
-        print(f"Error: {str(e)}")
-
-def main() -> None:
-    updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(filters.document, handle_file))
-
-    updater.start_polling()
-
-    updater.idle()
-
-if __name__ == '__main__':
-    while True:
-        try:
-            main()
-        except Exception as e:
-            print(f"An error occurred in the main loop: {str(e)}")
+# Start polling
+updater.start_polling()
+updater.idle()

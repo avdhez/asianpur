@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import youtube_dl
 
 # Telegram bot token
-TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+TOKEN = '7152551098:AAE3yVc80slmtsW4m7-CxxM5VZdOl1VRUbg'
 
 # Initialize the bot
 bot = telegram.Bot(token=TOKEN)
